@@ -1,29 +1,18 @@
-# Credentials
+# SiriusXM credentials + runtime state — never commit (public repo)
 app/data/siriusxm.json
+app/data/last_station.json
+**/siriusxm.json
 
-# Python
+# backups & local cruft
+*.bak
+*.bak-*
 __pycache__/
 *.pyc
-*.pyo
-.venv/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-
-# Data files (runtime state, not source)
-# Uncomment these if you don't want to track station data:
-# app/stations.json
-# app/cities.json
-# app/streamdeck_layout.json
-
-# Session / tooling
-.claude/
-.playwright-mcp/
-*-mobile.png
+.venv*/
 .venv-test/
-app/data/last_station.json
+.pytest_cache/
+.playwright-mcp/
+.DS_Store
+
+# local agent tooling
+.claude/

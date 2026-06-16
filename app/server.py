@@ -167,10 +167,14 @@ def _start_sxm_proxy(username: str, password: str):
     global _sxm_process, _sxm_log_fh
     _stop_sxm_proxy()
     _sxm_log_fh = open(SXM_PROXY_LOG, 'w')
+    # sxm-player 0.2.5 wants credentials as --username/--password (or env vars),
+    # NOT positional args. Pass via env so the password never appears in `ps`.
+    env = dict(os.environ, SXM_USERNAME=username, SXM_PASSWORD=password)
     _sxm_process = subprocess.Popen(
-        ['sxm', username, password, '--port', '9999', '--host', '0.0.0.0'],
+        ['sxm', '--port', '9999', '--host', '0.0.0.0'],
         stdout=_sxm_log_fh,
         stderr=_sxm_log_fh,
+        env=env,
     )
 
 
