@@ -742,6 +742,11 @@ async function play(st){
   api('POST','/play',{id:st.id});
   pollNow(true);
 }
+async function playSxmStation(st){
+  currentId=st.id; showHero(st); renderRail();
+  api('POST','/play',st);
+  pollNow(true);
+}
 async function stop(){
   currentId=null; api('POST','/stop'); clearHero(); renderRail();
   if(npTimer)clearTimeout(npTimer);
@@ -836,7 +841,7 @@ $('#sxmLoginBtn').onclick=async()=>{
   $('#sxmLoginLabel').textContent='Signing in…'; $('#sxmLoginError').textContent='';
   try{
     const r=await api('POST','/sxm/login',{username:u,password:p});
-    if(r.ok){ $('#sxmLoginSection').style.display='none'; $('#sxmChannelSection').style.display=''; $('#sxmUsernameDisplay').textContent=u; htmx.ajax('GET','/api/sxm/channels','#sxmChannelResults'); }
+    if(r.ok){ $('#sxmLoginSection').style.display='none'; $('#sxmChannelSection').style.display=''; $('#sxmUsernameDisplay').textContent=u; htmx.ajax('GET','/partials/sxm/channels','#sxmChannelResults'); }
     else $('#sxmLoginError').textContent=r.error||'Login failed';
   }catch(e){ $('#sxmLoginError').textContent='Login failed'; }
   finally{ $('#sxmLoginLabel').textContent='Sign In'; }

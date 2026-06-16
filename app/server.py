@@ -860,6 +860,16 @@ def api_add_station():
     return resp
 
 
+@app.route('/partials/sxm/channels', methods=['GET'])
+def partials_sxm_channels():
+    if not _sxm_is_logged_in():
+        return _render_error_html('Not signed in')
+    try:
+        return _render_results_html(_get_sxm_channels())
+    except Exception as exc:
+        return _render_error_html(exc)
+
+
 @app.route('/partials/somafm', methods=['GET'])
 def partials_somafm():
     q = request.args.get('q', '').strip()
