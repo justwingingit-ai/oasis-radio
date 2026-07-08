@@ -848,7 +848,8 @@ def _render_error_html(msg):
 
 @app.route('/api/stations/add', methods=['POST'])
 def api_add_station():
-    station = request.get_json(force=True)
+    # htmx hx-vals posts form-encoded params, not JSON — accept both
+    station = request.get_json(force=True, silent=True) or request.form.to_dict() or None
     if not isinstance(station, dict) or 'id' not in station:
         return _render_error_html('Invalid station data'), 400
     stations = _load_json(STATIONS_FILE, [])

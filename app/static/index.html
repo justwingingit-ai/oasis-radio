@@ -15,6 +15,7 @@
   --panel:rgba(20,16,26,.72); --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.14);
   --bone:#f6eee0; --dim:#b6aa9c; --faint:#7e7468;
   --amber:#ffb12e; --pink:#ff2e88; --cyan:#2ff4e4; --blue:#4f86ff; --red:#ff5a3c; --green:#54f08a;
+  --sxm-blue:#4f86ff;
   --c:#ffb12e;
   --c-rgb:255,177,46;
   --ease:cubic-bezier(.22,.61,.36,1);
@@ -410,6 +411,21 @@ body{
 .sxm-btn{width:100%;padding:13px;border-radius:12px;border:none;cursor:pointer;background:linear-gradient(180deg,#6e9bff,var(--blue));color:#fff;font:700 13px 'DM Sans'}
 .sxm-err{color:#ff8a73;font-size:12.5px;margin-top:8px;min-height:16px}
 
+/* ---------- search / channel result cards ---------- */
+.result-card{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;border-radius:14px;
+  background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(10px);transition:.16s var(--ease)}
+.result-card:hover{border-color:var(--line2);background:rgba(255,255,255,.04)}
+.result-card.sxm-card{max-width:none;padding:13px 15px}
+.result-info{min-width:0;flex:1}
+.result-name{font:700 14px 'DM Sans';color:var(--bone);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.result-meta{font:400 12px 'DM Sans';color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.add-btn{flex-shrink:0;padding:9px 14px;border-radius:999px;border:1px solid var(--line2);background:transparent;
+  color:var(--bone);font:600 12px 'DM Sans';cursor:pointer;transition:.16s var(--ease);white-space:nowrap}
+.add-btn:hover{border-color:var(--c);color:var(--c)}
+.add-btn:disabled{color:var(--faint);border-color:var(--line);cursor:default}
+.sxm-badge{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:6px;font:700 9px 'DM Mono';
+  letter-spacing:1px;color:#fff;background:var(--sxm-blue);vertical-align:middle}
+
 /* ---------- video modal ---------- */
 .vmodal{position:fixed;inset:0;z-index:90;display:none;place-items:center;background:rgba(2,2,4,.86);backdrop-filter:blur(10px);padding:20px}
 .vmodal.show{display:grid}
@@ -474,6 +490,14 @@ body{
   .top{padding:14px 18px}
   .picker-head{padding:12px 18px 8px}
   .browse{padding:0 18px}
+  /* touch targets ≥44px */
+  .icon-btn{min-height:44px;padding:12px 16px}
+  .stab{min-height:44px;padding:12px 16px}
+  .city,.city-add{min-height:44px;display:inline-flex;align-items:center;padding:10px 14px}
+  .vbtn{width:44px;height:44px;flex-shrink:0}
+  .dock{padding:11px 16px;gap:10px}
+  .add-btn{min-height:44px;padding:11px 16px}
+  .result-card .play-btn{width:44px!important;height:44px!important;margin-right:4px}
 }
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
@@ -819,11 +843,13 @@ document.querySelectorAll('.stab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.spane').forEach(p=>p.classList.remove('active'));
   $('#pane-'+b.dataset.pane).classList.add('active');
 });
+// scroll the browse drawer into view when opened so it isn't below the fold on phones
+const browseDrawer=document.querySelector('details.browse');
+browseDrawer.addEventListener('toggle',()=>{ if(browseDrawer.open) browseDrawer.scrollIntoView({behavior:'smooth',block:'start'}); });
 
 // ===== ADD STATION =====
-document.addEventListener('click', async e=>{
-  const add=e.target.closest('[data-add]'); if(add){ setTimeout(loadStations,400); }
-});
+// backend fires HX-Trigger: stationAdded after a successful /api/stations/add
+document.body.addEventListener('stationAdded', ()=>{ loadStations(); toast('Added to your stations'); });
 
 // ===== CITY MODAL =====
 $('#cityCancel').onclick=()=>$('#cityModal').classList.remove('show');
@@ -853,9 +879,22 @@ $('#sxmLogoutBtn').onclick=async()=>{
 
 // ===== INIT =====
 async function loadStations(){ try{ stations=await api('GET','/stations'); }catch(e){} renderRail(); }
+async function initSxm(){
+  // creds persist server-side (/data/siriusxm.json) — restore the signed-in view on load
+  try{
+    const s=await api('GET','/sxm/status');
+    if(s && s.logged_in){
+      $('#sxmLoginSection').style.display='none';
+      $('#sxmChannelSection').style.display='';
+      $('#sxmUsernameDisplay').textContent=s.username||'';
+      htmx.ajax('GET','/partials/sxm/channels','#sxmChannelResults');
+    }
+  }catch(e){}
+}
 async function init(){
   try{ [stations,cities]=await Promise.all([api('GET','/stations'),api('GET','/cities')]); }catch(e){}
   renderCities(); renderRail();
+  initSxm();
   const np=new URLSearchParams(location.search).get('np');
   const status=await api('GET','/status').catch(()=>({}));
   const startId=np||(status.playing && status.station && status.station.id);
