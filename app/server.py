@@ -167,10 +167,14 @@ def _start_sxm_proxy(username: str, password: str):
     global _sxm_process, _sxm_log_fh
     _stop_sxm_proxy()
     _sxm_log_fh = open(SXM_PROXY_LOG, 'w')
+    # sxm-player 0.2.5 wants credentials as --username/--password (or env vars),
+    # NOT positional args. Pass via env so the password never appears in `ps`.
+    env = dict(os.environ, SXM_USERNAME=username, SXM_PASSWORD=password)
     _sxm_process = subprocess.Popen(
-        ['sxm', username, password, '--port', '9999', '--host', '0.0.0.0'],
+        ['sxm', '--port', '9999', '--host', '0.0.0.0'],
         stdout=_sxm_log_fh,
         stderr=_sxm_log_fh,
+        env=env,
     )
 
 
@@ -844,7 +848,8 @@ def _render_error_html(msg):
 
 @app.route('/api/stations/add', methods=['POST'])
 def api_add_station():
-    station = request.get_json(force=True)
+    # htmx hx-vals posts form-encoded params, not JSON — accept both
+    station = request.get_json(force=True, silent=True) or request.form.to_dict() or None
     if not isinstance(station, dict) or 'id' not in station:
         return _render_error_html('Invalid station data'), 400
     stations = _load_json(STATIONS_FILE, [])
@@ -854,6 +859,16 @@ def api_add_station():
     resp = make_response('<button class="add-btn" disabled>Saved</button>')
     resp.headers['HX-Trigger'] = 'stationAdded'
     return resp
+
+
+@app.route('/partials/sxm/channels', methods=['GET'])
+def partials_sxm_channels():
+    if not _sxm_is_logged_in():
+        return _render_error_html('Not signed in')
+    try:
+        return _render_results_html(_get_sxm_channels())
+    except Exception as exc:
+        return _render_error_html(exc)
 
 
 @app.route('/partials/somafm', methods=['GET'])
